@@ -24,7 +24,7 @@ def calc_lidar_data(packet):
     # get infos from data packet (bytes are flipped for each value)
     # speed in degrees per second
     speed = int(get_byte(1) + get_byte(0), 16)
-    # start and end angle in thousands of a degree
+    # start and end angle in hundreds of a degree
     start_angle = float(int(get_byte(3) + get_byte(2), 16)) / 100  # degrees (after division)
     end_angle = float(int(get_byte(-4) + get_byte(-5), 16)) / 100  # degrees (after division)
     # timestamp in milliseconds (returns to 0 after 30000)
