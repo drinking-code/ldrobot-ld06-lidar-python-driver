@@ -34,8 +34,6 @@ def listen_to_lidar(port: str = '/dev/tty.usbserial-0001') -> tuple[dict, callab
                     last_byte_was_header = True
                     # read next byte
                     continue
-                else:
-                    last_byte_was_header = False
 
                 # check for var_len byte (fixed value, comes after header byte)
                 # if yes -> parse data, and update "data" variable
@@ -44,18 +42,18 @@ def listen_to_lidar(port: str = '/dev/tty.usbserial-0001') -> tuple[dict, callab
 
                     # if the packet length of the received packet doesn't have the expected length, something went wrong
                     # -> drop packet and restart read loop
-                    if not len(buffer[0:-5]) == packet_length * 2:
+                    if not len(buffer[0:-4]) == packet_length * 2:
                         buffer = ""
                         break
 
-                    lidar_data = calc_lidar_data(buffer[0:-5])
+                    lidar_data = calc_lidar_data(buffer[0:-4])
 
                     # cleanup outdated values
-                    for angle in lidar_data.angle_i.keys():
+                    for angle in lidar_data.angle_i:
                         start_angle, end_angle = lidar_data.start_angle, lidar_data.end_angle
                         # remove angle only if it is in the range of the current data packet
-                        if start_angle < angle < end_angle\
-                                or (end_angle > start_angle and (angle > start_angle or angle < end_angle)):
+                        if angle in data['distances'] and (start_angle < angle < end_angle or (
+                                end_angle > start_angle and (angle > start_angle or angle < end_angle))):
                             del data['distances'][angle]
 
                     # write new distance data to distances
@@ -71,8 +69,10 @@ def listen_to_lidar(port: str = '/dev/tty.usbserial-0001') -> tuple[dict, callab
                 else:  # is not header or var_len -> write to buffer
                     buffer += byte.hex()
 
+                last_byte_was_header = False
+
     # call update_data in a separate thread to make listen_to_lidar return and update_data still update the "data" var
-    read_thread = threading.Thread(target=update_data, args=(data_channel,))
+    read_thread = threading.Thread(target=update_data)
     read_thread.start()
 
     def stop():
